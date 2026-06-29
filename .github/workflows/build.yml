@@ -27,7 +27,7 @@ jobs:
     env:
       VALKYRIE_VERSION: 1.2.0
       VALKYRIE_SHA256: 58bd9d270706163e1b1c2ac9947e6a200ded302c638ec356ac3c126bf996588c
-      ICON_PACKAGE_NAME: moe.rukamori.conpack
+      ICON_PACKAGE_NAME: moe.rukamori.iconpack
 
     steps:
       - name: Require PAT
@@ -128,7 +128,7 @@ jobs:
     env:
       VALKYRIE_VERSION: 1.2.0
       VALKYRIE_SHA256: 58bd9d270706163e1b1c2ac9947e6a200ded302c638ec356ac3c126bf996588c
-      ICON_PACKAGE_NAME: moe.rukamori.conpack
+      ICON_PACKAGE_NAME: moe.rukamori.iconpack
 
     steps:
       - name: Require branch and PAT
