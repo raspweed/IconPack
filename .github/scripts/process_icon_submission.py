@@ -68,16 +68,23 @@ def read_pr_body(event_path: Path) -> str:
 def parse_form(body: str) -> list[dict[str, str]]:
     start = body.find(METADATA_START)
     end = body.find(METADATA_END)
-    if start < 0 or end < 0 or end <= start:
+    markers_missing = start < 0 and end < 0
+    if not markers_missing and (start < 0 or end < 0 or end <= start):
         raise SubmissionError("The icon metadata markers are missing or out of order.")
 
-    section = body[start + len(METADATA_START) : end].strip()
-    fenced = re.fullmatch(r"```json\s*(.*?)\s*```", section, re.DOTALL)
-    if fenced is None:
-        raise SubmissionError("Icon metadata must remain inside the template's JSON block.")
+    if markers_missing:
+        json_content = body.strip()
+    else:
+        section = body[start + len(METADATA_START) : end].strip()
+        fenced = re.fullmatch(r"```json\s*(.*?)\s*```", section, re.DOTALL)
+        if fenced is None:
+            raise SubmissionError(
+                "Icon metadata must remain inside the template's JSON block."
+            )
+        json_content = fenced.group(1)
 
     try:
-        form = json.loads(fenced.group(1))
+        form = json.loads(json_content)
     except json.JSONDecodeError as error:
         raise SubmissionError(f"Icon metadata is not valid JSON: {error}") from error
 
