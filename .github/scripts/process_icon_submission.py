@@ -65,6 +65,21 @@ def read_pr_body(event_path: Path) -> str:
     return body
 
 
+def read_pr_author_url(event_path: Path) -> str:
+    try:
+        event = json.loads(event_path.read_text(encoding="utf-8"))
+        login = event["pull_request"]["user"]["login"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        raise SubmissionError(
+            f"Cannot read the pull request author: {error}"
+        ) from error
+    if not isinstance(login, str) or not re.fullmatch(
+        r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})", login
+    ):
+        raise SubmissionError("The pull request author login is invalid.")
+    return f"https://github.com/{login}"
+
+
 def parse_form(body: str) -> list[dict[str, str]]:
     start = body.find(METADATA_START)
     end = body.find(METADATA_END)
@@ -217,6 +232,11 @@ def validate_svg(path: Path) -> None:
             f"{MAX_SVG_BYTES // 1_000_000} MB."
         )
     svg_bytes = path.read_bytes()
+    if svg_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise SubmissionError(
+            f"{path.as_posix()} contains PNG data. Export and submit an actual "
+            "SVG XML file instead of renaming a PNG file."
+        )
     upper_svg_bytes = svg_bytes.upper()
     if b"<!DOCTYPE" in upper_svg_bytes or b"<!ENTITY" in upper_svg_bytes:
         raise SubmissionError(f"{path.as_posix()} must not declare a DTD or entity.")
@@ -645,6 +665,7 @@ def process_pull_request(args: argparse.Namespace) -> None:
         return
 
     icons = parse_form(read_pr_body(args.event_path))
+    github_author_url = read_pr_author_url(args.event_path)
     if not validate_pr_changes(changes, icons):
         return
 
@@ -690,6 +711,7 @@ def process_pull_request(args: argparse.Namespace) -> None:
                 "Source": xml_filename,
                 "Submission": icon["file"],
                 "Link": icon["link"],
+                "GitHubAuthorUrl": github_author_url,
             }
         )
 
